@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   Bug,
   Paperclip as PaperclipIcon,
+  Star,
 } from "lucide-react";
 import { listMyReports, createReport, deleteReport } from "../services/reports";
 
@@ -197,6 +198,30 @@ export default function Dashboard() {
       setDeletingId(null);
     }
   };
+  const STATUS_STYLES = {
+    new: { chip: "border-cyber-orange bg-cyber-orange/10 text-cyber-orange" },
+    in_review: { chip: "border-cyber-blue bg-cyber-blue/10 text-cyber-blue" },
+    resolved: { chip: "border-cyber-green bg-cyber-green/10 text-cyber-green" },
+    rejected: { chip: "border-destructive bg-destructive/10 text-destructive" },
+  };
+  const STATUS_LABEL = {
+    new: "New",
+    in_review: "In Review",
+    resolved: "Resolved",
+    rejected: "Rejected",
+  };
+
+  function StatusPill({ status }) {
+    const s = (status || "").toLowerCase();
+    const st = STATUS_STYLES[s] || STATUS_STYLES.new;
+    return (
+      <span
+        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs capitalize ${st.chip}`}
+      >
+        {STATUS_LABEL[s] || s}
+      </span>
+    );
+  }
 
   const toggleExpand = (id) => setExpandedId((cur) => (cur === id ? null : id));
 
@@ -273,7 +298,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Create form (glow wrapper) */}
+        {/* Create form */}
         {showForm && (
           <div
             className="group relative mb-5 mx-auto max-w-lg rounded-2xl 
@@ -458,6 +483,16 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Badge score={r.cvss_score} />
+                          <StatusPill status={r.status} />
+                          {typeof r.rating !== "undefined" && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs
+                 border-yellow-400/70 bg-yellow-400/10 text-yellow-400 border"
+                            >
+                              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                              Rating: {r.rating}
+                            </span>
+                          )}
                           {r.cwe && (
                             <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-xs text-muted-foreground">
                               CWE: {r.cwe}
@@ -468,52 +503,44 @@ export default function Dashboard() {
                               {r.target}
                             </span>
                           )}
-                          {typeof r.rating !== "undefined" && (
-                            <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-xs text-muted-foreground">
-                              Rating: {r.rating}
-                            </span>
-                          )}
-                          {r.status && (
-                            <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-xs text-muted-foreground capitalize">
-                              Status: {formatStatus(r.status)}
-                            </span>
-                          )}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onDelete(id)}
-                          disabled={deletingId === id}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-destructive transition hover:bg-destructive/10 disabled:opacity-60 disabled:pointer-events-none"
-                          title="Видалити"
-                        >
-                          {deletingId === id ? (
-                            <svg
-                              className="h-4 w-4 animate-spin"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                fill="none"
-                                opacity=".25"
-                              />
-                              <path
-                                d="M22 12a10 10 0 0 1-10 10"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                fill="none"
-                              />
-                            </svg>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </button>
+                        {r.can_delete && (
+                          <button
+                            type="button"
+                            onClick={() => onDelete(id)}
+                            disabled={deletingId === id}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-destructive transition hover:bg-destructive/10 disabled:opacity-60 disabled:pointer-events-none"
+                            title="Видалити"
+                          >
+                            {deletingId === id ? (
+                              <svg
+                                className="h-4 w-4 animate-spin"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  fill="none"
+                                  opacity=".25"
+                                />
+                                <path
+                                  d="M22 12a10 10 0 0 1-10 10"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  fill="none"
+                                />
+                              </svg>
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 

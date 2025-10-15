@@ -1,6 +1,8 @@
 // src/pages/Profile.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
+import { ENDPOINTS } from "../constants";
 import {
   User,
   Mail,
@@ -12,7 +14,88 @@ import {
   X,
   Crosshair,
   ArrowLeft,
+  Star,
 } from "lucide-react";
+
+function clamp01(n) {
+  if (!Number.isFinite(n)) return 0;
+  if (n < 0) return 0;
+  if (n > 1) return 1;
+  return n;
+}
+
+function getLevelInfo(ratingRaw) {
+  const rating = Math.max(0, Math.min(100, Number(ratingRaw) || 0));
+  const maxed = rating >= 100;
+  const level = maxed ? 5 : Math.floor(rating / 20) + 1;
+  const lower = (level - 1) * 20;
+  const upper = maxed ? 100 : level * 20;
+  const within = rating - lower;
+  const progress = clamp01(within / (upper - lower || 20));
+  const toNext = maxed ? 0 : upper - rating;
+  return { rating, level, lower, upper, within, progress, toNext, maxed };
+}
+
+function RatingProgress({
+  rating,
+  durationMs = 2000,
+  easing = "cubic-bezier(0.16, 1, 0.3, 1)",
+}) {
+  const { level, progress, toNext, maxed, rating: r } = getLevelInfo(rating);
+
+  const [anim, setAnim] = useState(0);
+
+  useEffect(() => {
+    setAnim(0);
+    let raf = requestAnimationFrame(() => {
+      setAnim(progress);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [progress]);
+
+  const widthPct = `${Math.round(anim * 100)}%`;
+
+  return (
+    <div className="mt-4" aria-live="polite">
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="inline-flex items-center gap-1 text-yellow-400">
+          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+          Рейтинг: <b className="text-foreground">{r.toFixed(0)}</b>
+        </span>
+        <span className="text-muted-foreground">
+          {maxed ? (
+            <span className="text-yellow-400">MAX • Level 5</span>
+          ) : (
+            <>
+              Level {level} • до підвищення:{" "}
+              <b className="text-foreground">{toNext}</b>
+            </>
+          )}
+        </span>
+      </div>
+
+      <div
+        className="h-2 w-full overflow-hidden rounded-full border border-yellow-400/60 bg-yellow-400/10"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(anim * 100)}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: widthPct,
+            transition: `width ${durationMs}ms ${easing}`,
+            willChange: "width",
+            background:
+              "linear-gradient(90deg, rgba(250,204,21,0.9) 0%, rgba(234,179,8,0.95) 60%, rgba(234,179,8,1) 100%)",
+            boxShadow: "0 0 16px rgba(234, 179, 8, 0.45)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -25,6 +108,29 @@ export default function Profile() {
       return null;
     }
   });
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await api.get(ENDPOINTS.me);
+        if (!mounted) return;
+        setUser((prev) => ({ ...prev, ...data }));
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            ...JSON.parse(localStorage.getItem("user") || "{}"),
+            ...data,
+          })
+        );
+      } catch (e) {
+        console.error("Не вдалося отримати /auth/me/", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const role = (user?.role || "hunter").toLowerCase();
 
@@ -69,12 +175,14 @@ export default function Profile() {
     navigate("/login", { replace: true });
   };
 
-  const toDashboard = () => navigate("/app");
+  const toDashboard = () => navigate(role === "analyst" ? "/analyst" : "/app");
 
   const roleClasses =
     role === "hunter"
       ? "border-cyber-green/60 text-cyber-green hover:shadow-[0_0_26px_hsl(var(--cyber-green)/.55)]"
       : "border-cyber-blue/60 text-cyber-blue hover:shadow-[0_0_26px_hsl(var(--cyber-blue)/.55)]";
+
+  const rating = Number(user?.rating ?? 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -84,7 +192,7 @@ export default function Profile() {
             <ArrowLeft
               onClick={toDashboard}
               className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
-              title="До Mission Control"
+              title="До Dashboard"
             />
             <h1 className="text-xl font-bold tracking-tight">Профіль</h1>
           </div>
@@ -133,6 +241,11 @@ export default function Profile() {
                     <Crosshair className="h-3.5 w-3.5 transition group-hover/role:scale-110" />
                     <span className="capitalize">{role}</span>
                   </span>
+                </div>
+
+                {/* Рейтинг + прогрес до наступного рівня (анімація) */}
+                <div className="mt-2">
+                  <RatingProgress rating={rating} />
                 </div>
               </div>
 

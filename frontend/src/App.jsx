@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Analyst from "./pages/Analyst";
 
 export default function App() {
   return (
@@ -18,7 +19,7 @@ export default function App() {
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allow={["hunter"]}>
             <Profile />
           </ProtectedRoute>
         }
@@ -26,8 +27,16 @@ export default function App() {
       <Route
         path="/app"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allow={["hunter"]}>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analyst"
+        element={
+          <ProtectedRoute allow={["analyst"]}>
+            <Analyst />
           </ProtectedRoute>
         }
       />

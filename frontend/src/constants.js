@@ -8,9 +8,12 @@ export const ENDPOINTS = {
   refresh:  `${API_PREFIX}/auth/refresh/`,
   register: `${API_PREFIX}/auth/register/`,
   logout:   `${API_PREFIX}/auth/logout/`,
+  me: `${API_PREFIX}/auth/me/`,
   reports: {
+    list:   `${API_PREFIX}/reports/`,
     create: `${API_PREFIX}/reports/create/`,
     mine:   `${API_PREFIX}/reports/mine/`,
+    detail: (id) => `${API_PREFIX}/reports/${id}/`,
     del:    (id) => `${API_PREFIX}/reports/${id}/delete/`,
   }
 };

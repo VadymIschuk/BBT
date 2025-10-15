@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, User, Lock } from "lucide-react";
 import api from "../api";
+import { ENDPOINTS } from "../constants";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,22 +27,31 @@ export default function Login() {
     try {
       setSubmitting(true);
 
-      const { data } = await api.post("api/v1/token/", {
+      const { data } = await api.post(ENDPOINTS.login, {
         username: form.username,
         password: form.password,
       });
 
       const { access, refresh } = data || {};
-      if (!access || !refresh) {
-        throw new Error("Токени не повернуті сервером");
-      }
+      if (!access || !refresh) throw new Error("Токени не повернуті сервером");
 
       localStorage.setItem("access", access);
       localStorage.setItem("refresh", refresh);
+      localStorage.removeItem("user");
 
-      localStorage.setItem("user", JSON.stringify({ username: form.username }));
+      const { data: meData } = await api.get(ENDPOINTS.me, {
+        headers: { Authorization: `Bearer ${access}` },
+      });
 
-      navigate("/app");
+      const role = meData?.role || "hunter";
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ username: meData.username || form.username, role })
+      );
+
+      const redirect = role === "analyst" ? "/analyst" : "/app";
+      navigate(redirect);
     } catch (err) {
       const status = err?.response?.status;
       if (status === 401 || status === 400) {
